@@ -8,7 +8,7 @@
 CMakeFiles/
 x64/
 third_party/
-src/
+vulkan_guide_project/src/
 vulkan-guide/assets/
 vulkan-guide/bin/
 vulkan-guide/CMakeFiles/
