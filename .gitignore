@@ -7,9 +7,9 @@ vulkan_guide_project/.git
 vulkan_guide_project/.vs
 vulkan_guide_project/CMakeFiles/
 vulkan_guide_project/x64/
-vulkan_guide_project/third_party/
-vulkan_guide_project/vulkan-guide/assets/
-vulkan_guide_project/vulkan-guide/bin/
-vulkan_guide_project/vulkan-guide/CMakeFiles/
-vulkan_guide_project/vulkan-guide/third_party/
+third_party/
+vulkan-guide/assets/
+vulkan-guide/bin/
+vulkan-guide/CMakeFiles/
+vulkan-guide/third_party/
 engine.dir/
