@@ -1,22 +1,22 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <CustomBuild Include="C:\Users\akral\projects\vulkan_guide_project\CMakeFiles\8abf374ecf9fd6fb4b353e4684ff74ad\gradient.comp.spv.rule">
+    <CustomBuild Include="C:\Users\akral\projects\vulkan_guide_project\CMakeFiles\60230f485bbd51c8f622e725afa961b8\gradient.comp.spv.rule">
       <Filter>CMake Rules</Filter>
     </CustomBuild>
-    <CustomBuild Include="C:\Users\akral\projects\vulkan_guide_project\CMakeFiles\8abf374ecf9fd6fb4b353e4684ff74ad\gradient_color.comp.spv.rule">
+    <CustomBuild Include="C:\Users\akral\projects\vulkan_guide_project\CMakeFiles\60230f485bbd51c8f622e725afa961b8\gradient_color.comp.spv.rule">
       <Filter>CMake Rules</Filter>
     </CustomBuild>
-    <CustomBuild Include="C:\Users\akral\projects\vulkan_guide_project\CMakeFiles\8abf374ecf9fd6fb4b353e4684ff74ad\sky.comp.spv.rule">
+    <CustomBuild Include="C:\Users\akral\projects\vulkan_guide_project\CMakeFiles\60230f485bbd51c8f622e725afa961b8\sky.comp.spv.rule">
       <Filter>CMake Rules</Filter>
     </CustomBuild>
-    <CustomBuild Include="C:\Users\akral\projects\vulkan_guide_project\CMakeFiles\fa9d00b895f482fbe9db98256b0845f9\Shaders.rule">
+    <CustomBuild Include="C:\Users\akral\projects\vulkan_guide_project\CMakeFiles\fa9d00b895f482fbe9db98256b0845f9\shaders.rule">
       <Filter>CMake Rules</Filter>
     </CustomBuild>
     <CustomBuild Include="C:\Users\akral\projects\vulkan_guide_project\vulkan-guide\CMakeLists.txt" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="C:\Users\akral\projects\vulkan_guide_project\CMakeFiles\Shaders" />
+    <None Include="C:\Users\akral\projects\vulkan_guide_project\CMakeFiles\shaders" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="CMake Rules">
