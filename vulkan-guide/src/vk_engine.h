@@ -6,6 +6,15 @@
 #include <vk_loader.h>
 #include <vk_types.h>
 
+struct GPUSceneData {
+  glm::mat4 view;
+  glm::mat4 proj;
+  glm::mat4 viewproj;
+  glm::vec4 ambientColor;
+  glm::vec4 sunlightDirection; // w for sun power
+  glm::vec4 sunlightColor;
+};
+
 struct ComputePushConstants {
   glm::vec4 data1;
   glm::vec4 data2;
@@ -46,12 +55,17 @@ struct FrameData {
   VkCommandPool _commandPool;
   VkCommandBuffer _mainCommandBuffer;
   DeletionQueue _deletionQueue;
+  DescriptorAllocatorGrowable _frameDescriptors;
 };
 
 constexpr unsigned int FRAME_OVERLAP = 2;
 
 class VulkanEngine {
 public:
+  GPUSceneData sceneData;
+
+  VkDescriptorSetLayout _gpuSceneDataDescriptorLayout;
+
   std::vector<std::shared_ptr<MeshAsset>> testMeshes;
 
   VkPipelineLayout _meshPipelineLayout;
@@ -98,8 +112,8 @@ public:
   int _frameNumber{0};
   bool stop_rendering{false};
   bool bUseValidationLayers{true};
-  //VkExtent2D _windowExtent{800, 600};
-  VkExtent2D _drawExtent{ 800, 600 };
+  // VkExtent2D _windowExtent{800, 600};
+  VkExtent2D _drawExtent{800, 600};
   float renderScale = 1.f;
 
   VkInstance _instance;                      // Vulkan library handle

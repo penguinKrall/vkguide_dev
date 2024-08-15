@@ -63,8 +63,9 @@ loadGltfMeshes(VulkanEngine *engine, std::filesystem::path filePath) {
         indices.reserve(indices.size() + indexaccessor.count);
 
         fastgltf::iterateAccessor<std::uint32_t>(
-            gltf, indexaccessor,
-            [&](std::uint32_t idx) { indices.push_back(idx + initial_vtx); });
+            gltf, indexaccessor, [&](std::uint32_t idx) {
+              indices.push_back(idx + static_cast<uint32_t>(initial_vtx));
+            });
       }
 
       // load vertex positions
