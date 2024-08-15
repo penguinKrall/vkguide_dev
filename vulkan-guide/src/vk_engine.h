@@ -3,8 +3,24 @@
 
 #pragma once
 
-#include <vk_types.h>
 #include <vk_descriptors.h>
+#include <vk_types.h>
+
+struct ComputePushConstants {
+  glm::vec4 data1;
+  glm::vec4 data2;
+  glm::vec4 data3;
+  glm::vec4 data4;
+};
+
+struct ComputeEffect {
+  const char *name;
+
+  VkPipeline pipeline;
+  VkPipelineLayout layout;
+
+  ComputePushConstants data;
+};
 
 struct DeletionQueue {
   std::deque<std::function<void()>> deletors;
@@ -36,6 +52,28 @@ constexpr unsigned int FRAME_OVERLAP = 2;
 
 class VulkanEngine {
 public:
+  VkPipelineLayout _meshPipelineLayout;
+  VkPipeline _meshPipeline;
+
+  GPUMeshBuffers rectangle;
+
+  void init_mesh_pipeline();
+
+  VkPipelineLayout _trianglePipelineLayout;
+  VkPipeline _trianglePipeline;
+
+  void init_triangle_pipeline();
+
+  std::vector<ComputeEffect> backgroundEffects;
+  int currentBackgroundEffect{0};
+
+  // immediate submit structures
+  VkFence _immFence;
+  VkCommandBuffer _immCommandBuffer;
+  VkCommandPool _immCommandPool;
+
+  void immediate_submit(std::function<void(VkCommandBuffer cmd)> &&function);
+
   VkPipeline _gradientPipeline;
   VkPipelineLayout _gradientPipelineLayout;
 
@@ -96,6 +134,12 @@ public:
   // draw background
   void draw_background(VkCommandBuffer cmd);
 
+  // draw imgui
+  void draw_imgui(VkCommandBuffer cmd, VkImageView targetImageView);
+
+  // draw geometry
+  void draw_geometry(VkCommandBuffer cmd);
+
   // run main loop
   void run();
 
@@ -107,6 +151,13 @@ private:
   void init_descriptors();
   void init_pipelines();
   void init_background_pipelines();
+  void init_imgui();
+  void init_default_data();
   void create_swapchain(uint32_t width, uint32_t height);
   void destroy_swapchain();
+  AllocatedBuffer create_buffer(size_t allocSize, VkBufferUsageFlags usage,
+                                VmaMemoryUsage memoryUsage);
+  void destroy_buffer(const AllocatedBuffer &buffer);
+  GPUMeshBuffers uploadMesh(std::span<uint32_t> indices,
+                            std::span<Vertex> vertices);
 };
