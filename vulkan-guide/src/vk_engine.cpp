@@ -28,6 +28,7 @@
 VulkanEngine *loadedEngine = nullptr;
 
 VulkanEngine &VulkanEngine::Get() { return *loadedEngine; }
+
 void VulkanEngine::init() {
   // only one engine initialization is allowed with the application.
   assert(loadedEngine == nullptr);
@@ -243,21 +244,20 @@ void VulkanEngine::draw() {
 
 void VulkanEngine::init_mesh_pipeline() {
   VkShaderModule triangleFragShader;
-  if (!vkutil::load_shader_module(
-          "../shaders/compiled/colored_triangle.frag.spv", _device,
-          &triangleFragShader)) {
-    fmt::print("\nError when building the triangle fragment shader module");
+  if (!vkutil::load_shader_module("../shaders/compiled/tex_image.frag.spv",
+                                  _device, &triangleFragShader)) {
+    fmt::print("Error when building the fragment shader \n");
   } else {
-    fmt::print("\nTriangle fragment shader succesfully loaded");
+    fmt::print("Triangle fragment shader succesfully loaded \n");
   }
 
   VkShaderModule triangleVertexShader;
   if (!vkutil::load_shader_module(
           "../shaders/compiled/colored_triangle_mesh.vert.spv", _device,
           &triangleVertexShader)) {
-    fmt::print("\nError when building the triangle vertex shader module");
+    fmt::print("Error when building the vertex shader \n");
   } else {
-    fmt::print("\nTriangle vertex shader succesfully loaded");
+    fmt::print("Triangle vertex shader succesfully loaded \n");
   }
 
   VkPushConstantRange bufferRange{};
@@ -269,7 +269,8 @@ void VulkanEngine::init_mesh_pipeline() {
       vkinit::pipeline_layout_create_info();
   pipeline_layout_info.pPushConstantRanges = &bufferRange;
   pipeline_layout_info.pushConstantRangeCount = 1;
-
+  pipeline_layout_info.pSetLayouts = &_singleImageDescriptorLayout;
+  pipeline_layout_info.setLayoutCount = 1;
   VK_CHECK(vkCreatePipelineLayout(_device, &pipeline_layout_info, nullptr,
                                   &_meshPipelineLayout));
 
@@ -289,9 +290,9 @@ void VulkanEngine::init_mesh_pipeline() {
   pipelineBuilder.set_multisampling_none();
 
   // blending
-  //  pipelineBuilder.disable_blending();
-  //  pipelineBuilder.enable_blending_additive();
-  pipelineBuilder.enable_blending_alphablend();
+  pipelineBuilder.disable_blending();
+  // pipelineBuilder.enable_blending_additive();
+  // pipelineBuilder.enable_blending_alphablend();
 
   // pipelineBuilder.disable_depthtest();
   pipelineBuilder.enable_depthtest(true, VK_COMPARE_OP_GREATER_OR_EQUAL);
@@ -432,9 +433,21 @@ void VulkanEngine::draw_geometry(VkCommandBuffer cmd) {
 
   vkCmdSetScissor(cmd, 0, 1, &scissor);
 
-  GPUDrawPushConstants push_constants;
+  // bind a texture
+  VkDescriptorSet imageSet = get_current_frame()._frameDescriptors.allocate(
+      _device, _singleImageDescriptorLayout);
+  {
+    DescriptorWriter writer;
+    writer.write_image(0, _errorCheckerboardImage.imageView,
+                       _defaultSamplerNearest,
+                       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                       VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
-  push_constants.vertexBuffer = testMeshes[2]->meshBuffers.vertexBufferAddress;
+    writer.update_set(_device, imageSet);
+  }
+
+  vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                          _meshPipelineLayout, 0, 1, &imageSet, 0, nullptr);
 
   glm::mat4 view = glm::translate(glm::vec3{0, 0, -5});
   // camera projection
@@ -446,7 +459,9 @@ void VulkanEngine::draw_geometry(VkCommandBuffer cmd) {
   // to opengl and gltf axis
   projection[1][1] *= -1;
 
+  GPUDrawPushConstants push_constants;
   push_constants.worldMatrix = projection * view;
+  push_constants.vertexBuffer = testMeshes[2]->meshBuffers.vertexBufferAddress;
 
   vkCmdPushConstants(cmd, _meshPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
                      sizeof(GPUDrawPushConstants), &push_constants);
@@ -522,6 +537,97 @@ void VulkanEngine::run() {
 
     draw();
   }
+}
+AllocatedImage VulkanEngine::create_image(VkExtent3D size, VkFormat format,
+                                          VkImageUsageFlags usage,
+                                          bool mipmapped) {
+  AllocatedImage newImage;
+  newImage.imageFormat = format;
+  newImage.imageExtent = size;
+
+  VkImageCreateInfo img_info = vkinit::image_create_info(format, usage, size);
+  if (mipmapped) {
+    img_info.mipLevels = static_cast<uint32_t>(std::floor(
+                             std::log2(std::max(size.width, size.height)))) +
+                         1;
+  }
+
+  // always allocate images on dedicated GPU memory
+  VmaAllocationCreateInfo allocinfo = {};
+  allocinfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+  allocinfo.requiredFlags =
+      VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+  // allocate and create the image
+  VK_CHECK(vmaCreateImage(_allocator, &img_info, &allocinfo, &newImage.image,
+                          &newImage.allocation, nullptr));
+
+  // if the format is a depth format, we will need to have it use the correct
+  // aspect flag
+  VkImageAspectFlags aspectFlag = VK_IMAGE_ASPECT_COLOR_BIT;
+  if (format == VK_FORMAT_D32_SFLOAT) {
+    aspectFlag = VK_IMAGE_ASPECT_DEPTH_BIT;
+  }
+
+  // build a image-view for the image
+  VkImageViewCreateInfo view_info =
+      vkinit::imageview_create_info(format, newImage.image, aspectFlag);
+  view_info.subresourceRange.levelCount = img_info.mipLevels;
+
+  VK_CHECK(
+      vkCreateImageView(_device, &view_info, nullptr, &newImage.imageView));
+
+  return newImage;
+}
+
+AllocatedImage VulkanEngine::create_image(void *data, VkExtent3D size,
+                                          VkFormat format,
+                                          VkImageUsageFlags usage,
+                                          bool mipmapped) {
+  size_t data_size = size.depth * size.width * size.height * 4;
+  AllocatedBuffer uploadbuffer = create_buffer(
+      data_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+
+  memcpy(uploadbuffer.info.pMappedData, data, data_size);
+
+  AllocatedImage new_image = create_image(
+      size, format,
+      usage | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+      mipmapped);
+
+  immediate_submit([&](VkCommandBuffer cmd) {
+    vkutil::transition_image(cmd, new_image.image, VK_IMAGE_LAYOUT_UNDEFINED,
+                             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+    VkBufferImageCopy copyRegion = {};
+    copyRegion.bufferOffset = 0;
+    copyRegion.bufferRowLength = 0;
+    copyRegion.bufferImageHeight = 0;
+
+    copyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    copyRegion.imageSubresource.mipLevel = 0;
+    copyRegion.imageSubresource.baseArrayLayer = 0;
+    copyRegion.imageSubresource.layerCount = 1;
+    copyRegion.imageExtent = size;
+
+    // copy the buffer into the image
+    vkCmdCopyBufferToImage(cmd, uploadbuffer.buffer, new_image.image,
+                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
+                           &copyRegion);
+
+    vkutil::transition_image(cmd, new_image.image,
+                             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+  });
+
+  destroy_buffer(uploadbuffer);
+
+  return new_image;
+}
+
+void VulkanEngine::destroy_image(const AllocatedImage &img) {
+  vkDestroyImageView(_device, img.imageView, nullptr);
+  vmaDestroyImage(_allocator, img.image, img.allocation);
 }
 
 void VulkanEngine::init_vulkan() {
@@ -784,6 +890,17 @@ void VulkanEngine::init_descriptors() {
                                    nullptr);
     });
   }
+
+  {
+    DescriptorLayoutBuilder builder;
+    builder.add_binding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+    _singleImageDescriptorLayout =
+        builder.build(_device, VK_SHADER_STAGE_FRAGMENT_BIT);
+    _mainDeletionQueue.push_function([&]() {
+      vkDestroyDescriptorSetLayout(_device, _singleImageDescriptorLayout,
+                                   nullptr);
+    });
+  }
 }
 
 void VulkanEngine::init_pipelines() {
@@ -967,6 +1084,55 @@ void VulkanEngine::init_default_data() {
   rect_indices[3] = 2;
   rect_indices[4] = 1;
   rect_indices[5] = 3;
+
+  // 3 default textures, white, grey, black. 1 pixel each
+  uint32_t white = glm::packUnorm4x8(glm::vec4(1, 1, 1, 1));
+  _whiteImage =
+      create_image((void *)&white, VkExtent3D{1, 1, 1},
+                   VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT);
+
+  uint32_t grey = glm::packUnorm4x8(glm::vec4(0.66f, 0.66f, 0.66f, 1));
+  _greyImage =
+      create_image((void *)&grey, VkExtent3D{1, 1, 1}, VK_FORMAT_R8G8B8A8_UNORM,
+                   VK_IMAGE_USAGE_SAMPLED_BIT);
+
+  uint32_t black = glm::packUnorm4x8(glm::vec4(0, 0, 0, 0));
+  _blackImage =
+      create_image((void *)&black, VkExtent3D{1, 1, 1},
+                   VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT);
+
+  // checkerboard image
+  uint32_t magenta = glm::packUnorm4x8(glm::vec4(1, 0, 1, 1));
+  std::array<uint32_t, 16 * 16> pixels; // for 16x16 checkerboard texture
+  for (int x = 0; x < 16; x++) {
+    for (int y = 0; y < 16; y++) {
+      pixels[y * 16 + x] = ((x % 2) ^ (y % 2)) ? magenta : black;
+    }
+  }
+  _errorCheckerboardImage =
+      create_image(pixels.data(), VkExtent3D{16, 16, 1},
+                   VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT);
+
+  VkSamplerCreateInfo sampl = {.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
+
+  sampl.magFilter = VK_FILTER_NEAREST;
+  sampl.minFilter = VK_FILTER_NEAREST;
+
+  vkCreateSampler(_device, &sampl, nullptr, &_defaultSamplerNearest);
+
+  sampl.magFilter = VK_FILTER_LINEAR;
+  sampl.minFilter = VK_FILTER_LINEAR;
+  vkCreateSampler(_device, &sampl, nullptr, &_defaultSamplerLinear);
+
+  _mainDeletionQueue.push_function([&]() {
+    vkDestroySampler(_device, _defaultSamplerNearest, nullptr);
+    vkDestroySampler(_device, _defaultSamplerLinear, nullptr);
+
+    destroy_image(_whiteImage);
+    destroy_image(_greyImage);
+    destroy_image(_blackImage);
+    destroy_image(_errorCheckerboardImage);
+  });
 
   testMeshes =
       loadGltfMeshes(this, "..\\vulkan-guide\\assets\\basicmesh.glb").value();

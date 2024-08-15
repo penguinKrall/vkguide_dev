@@ -95,6 +95,16 @@ public:
   AllocatedImage _drawImage;
   AllocatedImage _depthImage;
 
+  AllocatedImage _whiteImage;
+  AllocatedImage _blackImage;
+  AllocatedImage _greyImage;
+  AllocatedImage _errorCheckerboardImage;
+
+  VkDescriptorSetLayout _singleImageDescriptorLayout;
+
+  VkSampler _defaultSamplerLinear;
+  VkSampler _defaultSamplerNearest;
+
   VmaAllocator _allocator;
 
   DeletionQueue _mainDeletionQueue;
@@ -159,6 +169,18 @@ public:
   GPUMeshBuffers uploadMesh(std::span<uint32_t> indices,
                             std::span<Vertex> vertices);
 
+  void create_swapchain(uint32_t width, uint32_t height);
+  void destroy_swapchain();
+  AllocatedBuffer create_buffer(size_t allocSize, VkBufferUsageFlags usage,
+                                VmaMemoryUsage memoryUsage);
+  void destroy_buffer(const AllocatedBuffer &buffer);
+  void resize_swapchain();
+  AllocatedImage create_image(VkExtent3D size, VkFormat format,
+                              VkImageUsageFlags usage, bool mipmapped = false);
+  AllocatedImage create_image(void *data, VkExtent3D size, VkFormat format,
+                              VkImageUsageFlags usage, bool mipmapped = false);
+  void destroy_image(const AllocatedImage &img);
+
 private:
   void init_vulkan();
   void init_swapchain();
@@ -169,10 +191,4 @@ private:
   void init_background_pipelines();
   void init_imgui();
   void init_default_data();
-  void create_swapchain(uint32_t width, uint32_t height);
-  void destroy_swapchain();
-  AllocatedBuffer create_buffer(size_t allocSize, VkBufferUsageFlags usage,
-                                VmaMemoryUsage memoryUsage);
-  void destroy_buffer(const AllocatedBuffer &buffer);
-  void resize_swapchain();
 };

@@ -19,6 +19,9 @@
     <CustomBuild Include="C:\Users\akral\projects\vulkan_guide_project\CMakeFiles\60230f485bbd51c8f622e725afa961b8\sky.comp.spv.rule">
       <Filter>CMake Rules</Filter>
     </CustomBuild>
+    <CustomBuild Include="C:\Users\akral\projects\vulkan_guide_project\CMakeFiles\60230f485bbd51c8f622e725afa961b8\tex_image.frag.spv.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
     <CustomBuild Include="C:\Users\akral\projects\vulkan_guide_project\CMakeFiles\fa9d00b895f482fbe9db98256b0845f9\shaders.rule">
       <Filter>CMake Rules</Filter>
     </CustomBuild>
