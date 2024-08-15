@@ -2,8 +2,8 @@
 // or project specific include files.
 
 #pragma once
-
 #include <vk_descriptors.h>
+#include <vk_loader.h>
 #include <vk_types.h>
 
 struct ComputePushConstants {
@@ -52,17 +52,12 @@ constexpr unsigned int FRAME_OVERLAP = 2;
 
 class VulkanEngine {
 public:
+  std::vector<std::shared_ptr<MeshAsset>> testMeshes;
+
   VkPipelineLayout _meshPipelineLayout;
   VkPipeline _meshPipeline;
 
-  GPUMeshBuffers rectangle;
-
   void init_mesh_pipeline();
-
-  VkPipelineLayout _trianglePipelineLayout;
-  VkPipeline _trianglePipeline;
-
-  void init_triangle_pipeline();
 
   std::vector<ComputeEffect> backgroundEffects;
   int currentBackgroundEffect{0};
@@ -84,7 +79,7 @@ public:
 
   // draw resources
   AllocatedImage _drawImage;
-  VkExtent2D _drawExtent;
+  AllocatedImage _depthImage;
 
   VmaAllocator _allocator;
 
@@ -103,7 +98,9 @@ public:
   int _frameNumber{0};
   bool stop_rendering{false};
   bool bUseValidationLayers{true};
-  VkExtent2D _windowExtent{800, 600};
+  //VkExtent2D _windowExtent{800, 600};
+  VkExtent2D _drawExtent{ 800, 600 };
+  float renderScale = 1.f;
 
   VkInstance _instance;                      // Vulkan library handle
   VkDebugUtilsMessengerEXT _debug_messenger; // Vulkan debug output handle
@@ -121,6 +118,8 @@ public:
   struct SDL_Window *_window{nullptr};
 
   static VulkanEngine &Get();
+
+  bool resize_requested{false};
 
   // initializes everything in the engine
   void init();
@@ -143,6 +142,9 @@ public:
   // run main loop
   void run();
 
+  GPUMeshBuffers uploadMesh(std::span<uint32_t> indices,
+                            std::span<Vertex> vertices);
+
 private:
   void init_vulkan();
   void init_swapchain();
@@ -158,6 +160,5 @@ private:
   AllocatedBuffer create_buffer(size_t allocSize, VkBufferUsageFlags usage,
                                 VmaMemoryUsage memoryUsage);
   void destroy_buffer(const AllocatedBuffer &buffer);
-  GPUMeshBuffers uploadMesh(std::span<uint32_t> indices,
-                            std::span<Vertex> vertices);
+  void resize_swapchain();
 };
