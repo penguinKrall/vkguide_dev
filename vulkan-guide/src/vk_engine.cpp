@@ -60,6 +60,12 @@ void VulkanEngine::init() {
 
   init_default_data();
 
+  mainCamera.velocity = glm::vec3(0.f);
+  mainCamera.position = glm::vec3(0, 0, 5);
+
+  mainCamera.pitch = 0;
+  mainCamera.yaw = 0;
+
   // everything went fine
   _isInitialized = true;
 }
@@ -87,6 +93,8 @@ void VulkanEngine::cleanup() {
       destroy_buffer(mesh->meshBuffers.indexBuffer);
       destroy_buffer(mesh->meshBuffers.vertexBuffer);
     }
+
+    metalRoughMaterial.clear_resources(_device);
 
     // flush the global deletion queue
     _mainDeletionQueue.flush();
@@ -495,6 +503,8 @@ void VulkanEngine::run() {
           stop_rendering = false;
         }
       }
+
+      mainCamera.processSDLEvent(e);
 
       // send SDL event to imgui for handling
       ImGui_ImplSDL2_ProcessEvent(&e);
@@ -1080,16 +1090,22 @@ void VulkanEngine::update_scene() {
 
   loadedNodes["Suzanne"]->Draw(glm::mat4{1.f}, mainDrawContext);
 
-  sceneData.view = glm::translate(glm::vec3{0, 0, -5});
+  mainCamera.update();
+
+  glm::mat4 view = mainCamera.getViewMatrix();
+
   // camera projection
-  sceneData.proj = glm::perspective(
+  glm::mat4 projection = glm::perspective(
       glm::radians(70.f), (float)_drawExtent.width / (float)_drawExtent.height,
       10000.f, 0.1f);
 
   // invert the Y direction on projection matrix so that we are more similar
   // to opengl and gltf axis
-  sceneData.proj[1][1] *= -1;
-  sceneData.viewproj = sceneData.proj * sceneData.view;
+  projection[1][1] *= -1;
+
+  sceneData.view = view;
+  sceneData.proj = projection;
+  sceneData.viewproj = projection * view;
 
   // some default lighting parameters
   sceneData.ambientColor = glm::vec4(.1f);
@@ -1432,7 +1448,13 @@ void GLTFMetallic_Roughness::build_pipelines(VulkanEngine *engine) {
   vkDestroyShaderModule(engine->_device, meshVertexShader, nullptr);
 }
 
-void GLTFMetallic_Roughness::clear_resources(VkDevice device) {}
+void GLTFMetallic_Roughness::clear_resources(VkDevice device) {
+  vkDestroyDescriptorSetLayout(device, materialLayout, nullptr);
+  vkDestroyPipelineLayout(device, transparentPipeline.layout, nullptr);
+
+  vkDestroyPipeline(device, transparentPipeline.pipeline, nullptr);
+  vkDestroyPipeline(device, opaquePipeline.pipeline, nullptr);
+}
 
 MaterialInstance GLTFMetallic_Roughness::write_material(
     VkDevice device, MaterialPass pass, const MaterialResources &resources,

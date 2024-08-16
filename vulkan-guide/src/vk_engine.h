@@ -2,6 +2,7 @@
 // or project specific include files.
 
 #pragma once
+#include <camera.h>
 #include <vk_descriptors.h>
 #include <vk_loader.h>
 #include <vk_types.h>
@@ -117,6 +118,8 @@ constexpr unsigned int FRAME_OVERLAP = 2;
 
 class VulkanEngine {
 public:
+  Camera mainCamera;
+
   DrawContext mainDrawContext;
   std::unordered_map<std::string, std::shared_ptr<Node>> loadedNodes;
 
