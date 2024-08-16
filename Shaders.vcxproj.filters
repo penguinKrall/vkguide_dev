@@ -16,6 +16,12 @@
     <CustomBuild Include="C:\Users\akral\projects\vulkan_guide_project\CMakeFiles\60230f485bbd51c8f622e725afa961b8\gradient_color.comp.spv.rule">
       <Filter>CMake Rules</Filter>
     </CustomBuild>
+    <CustomBuild Include="C:\Users\akral\projects\vulkan_guide_project\CMakeFiles\60230f485bbd51c8f622e725afa961b8\mesh.frag.spv.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\akral\projects\vulkan_guide_project\CMakeFiles\60230f485bbd51c8f622e725afa961b8\mesh.vert.spv.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
     <CustomBuild Include="C:\Users\akral\projects\vulkan_guide_project\CMakeFiles\60230f485bbd51c8f622e725afa961b8\sky.comp.spv.rule">
       <Filter>CMake Rules</Filter>
     </CustomBuild>
